@@ -4,7 +4,7 @@ import os, urllib
 
 from django.core.management.base import NoArgsCommand, CommandError
 
-from mollie.ideal.settings import MOLLIE_API_URL
+from mollie.ideal.settings import MOLLIE_API_URL, MOLLIE_TEST
 
 class Command(NoArgsCommand):
     help = 'Fetches the latest list of supported banks from Mollie.nl'
@@ -13,6 +13,8 @@ class Command(NoArgsCommand):
     def handle_noargs(self, **options):
         here = os.path.realpath('.')
         url = '%s?a=banklist' % MOLLIE_API_URL
+        if MOLLIE_TEST:
+            url += '&testmode=true'
         file = os.path.join(here, 'mollie_banklist.xml')
         try:
             urllib.urlretrieve(url, file)
