@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from xml.etree.ElementTree import tostring
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -6,6 +7,22 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from mollie.ideal.helpers import _get_mollie_xml, get_mollie_bank_choices
+import logging
+log = logging.getLogger('mollie-ideal')
+
+PAYMENTSTATUS_SUCCESS = 'Success'
+PAYMENTSTATUS_CANCELLED = 'Cancelled'
+PAYMENTSTATUS_FAILURE = 'Failure'
+PAYMENTSTATUS_EXPIRED = 'Expired'
+PAYMENTSTATUS_CHECKEDBEFORE = 'CheckedBefore'
+
+PAYMENTSTATUS_CHOICES = (
+    (PAYMENTSTATUS_SUCCESS, _('De betaling is gelukt')),
+    (PAYMENTSTATUS_CANCELLED, _('De consument heeft de betaling geannuleerd.')),
+    (PAYMENTSTATUS_FAILURE, _('De betaling is niet gelukt (er is geen verdere informatie beschikbaar)')),
+    (PAYMENTSTATUS_EXPIRED, _('De betaling is verlopen doordat de consument niets met de betaling heeft gedaan.')),
+    (PAYMENTSTATUS_CHECKEDBEFORE, _('U heeft de betalingstatus al een keer opgevraagd.')),
+    )
 
 class MollieIdealPayment(models.Model):
 
@@ -19,6 +36,9 @@ class MollieIdealPayment(models.Model):
     consumer_account = models.CharField(_('Consumer account'), max_length=255, blank=True)
     consumer_name = models.CharField(_('Consumer name'), max_length=255, blank=True)
     consumer_city = models.CharField(_('Consumer city'), max_length=255, blank=True)
+    status = models.CharField(_('Status'), choices=PAYMENTSTATUS_CHOICES, max_length=255, blank=True)
+    fetch_response = models.CharField(_('Fetch response'), max_length=2000, blank=True)
+    check_response = models.CharField(_('Check response'), max_length=2000, blank=True)
 
     class Meta:
         abstract = True
@@ -46,6 +66,8 @@ class MollieIdealPayment(models.Model):
                 profile_key=settings.MOLLIE_PROFILE_KEY
             ))
         parsed_xml = _get_mollie_xml(request_dict)
+        self.fetch_response = tostring(parsed_xml.getroot())
+        self.save()
         order = parsed_xml.find('order')
         order_url = order.findtext('URL')
         self.transaction_id = order.findtext('transaction_id')
@@ -62,12 +84,15 @@ class MollieIdealPayment(models.Model):
             transaction_id = self.transaction_id
         )
         parsed_xml = _get_mollie_xml(request_dict)
+        self.check_response = tostring(parsed_xml.getroot())
+        self.save()
         order = parsed_xml.find('order')
         consumer = order.find('consumer')
         if consumer:
             self.consumer_account = consumer.findtext('consumerAccount')
             self.consumer_city = consumer.findtext('consumerCity')
             self.consumer_name = consumer.findtext('consumerName')
+        self.status = order.findtext('status')
         if order.findtext('payed') == 'true':
             return True
         return False

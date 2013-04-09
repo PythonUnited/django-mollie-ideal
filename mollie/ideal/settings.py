@@ -4,7 +4,7 @@ from django.conf import settings
 
 MOLLIE_API_URL = 'https://secure.mollie.nl/xml/ideal'
 MOLLIE_BANKLIST_DIR = getattr(settings, 'MOLLIE_BANKLIST_DIR', '/var/tmp')
-MOLLIE_BTW = getattr(settings, 'MOLLIE_BTW', 19)
+MOLLIE_BTW = getattr(settings, 'MOLLIE_BTW', 21)
 # A range of logos and buttons can be found at http://www.mollie.nl/support/klanten/logo-badges/
 MOLLIE_IDEAL_BUTTON = getattr(settings, 'MOLLIE_IDEAL_BUTTON', 'http://www.mollie.nl/images/badge-ideal-big.png')
 MOLLIE_MIN_AMOUNT = getattr(settings, 'MOLLIE_MIN_AMOUNT', '1.18')
